@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "bridge": {
+      "command": "bun",
+      "args": ["${CLAUDE_PROJECT_DIR}/channel/bridge.ts"],
+      "cwd": "${CLAUDE_PROJECT_DIR}"
+    }
+  }
+}

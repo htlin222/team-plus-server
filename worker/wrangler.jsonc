@@ -1,0 +1,41 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "teamplus-cloud-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-06-02",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "vars": {
+    "DEFAULT_ACCOUNT_ID": "default"
+  },
+  "secrets": {
+    "required": [
+      "TURSO_URL",
+      "TURSO_AUTH_TOKEN",
+      "COOKIE_UPLOAD_SECRET",
+      "TEAMPLUS_BASE"
+    ]
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "TEAMPLUS_SESSION",
+        "class_name": "TeamplusSession"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["TeamplusSession"]
+    }
+  ],
+  "triggers": {
+    // Safety net: re-nudge the default session every 5 min so the Durable
+    // Object reconnects if its self-healing alarm chain is ever lost.
+    "crons": ["*/5 * * * *"]
+  }
+}

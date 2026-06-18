@@ -1,0 +1,24 @@
+# Secrets (never commit)
+cookies.json
+.telegram.json
+.config.json
+.env
+.cf-worker.env
+# Turso creds + secrets — but keep worker/.dev.vars.example tracked
+worker/.dev.vars
+
+# Runtime state & logs (machine-local)
+state/
+logs/
+server.log
+# captcha images written by scripts/refresh_cookies.py
+captcha_attempt*.png
+
+# Build / tooling artifacts
+node_modules/
+.venv/
+__pycache__/
+.wrangler/
+# browser network captures (debug only)
+*.har
+.DS_Store

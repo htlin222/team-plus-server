@@ -1,0 +1,19 @@
+# worker/.dev.vars — local secrets for the Cloudflare Worker (gitignored).
+# Copy to `worker/.dev.vars` and fill in. `./scripts/setup_turso.sh` generates
+# the Turso values for you; you still set TEAMPLUS_BASE yourself.
+# In production these are pushed with `./scripts/push_secrets.sh`
+# (each becomes a `wrangler secret`).
+
+# Turso database connection (from `turso db show <db> --url` / `turso db tokens create <db>`).
+TURSO_URL="libsql://example-org-example.turso.io"
+TURSO_AUTH_TOKEN="paste-token-from-turso-db-tokens-create"
+
+# HMAC secret shared with the local cookie-upload helper. Must match
+# CF_TEAMPLUS_UPLOAD_SECRET in the repo-root .cf-worker.env. Generate with:
+#   openssl rand -hex 32
+COOKIE_UPLOAD_SECRET="generate-with-openssl-rand-hex-32"
+
+# Base URL (origin, no trailing slash) of your TeamPlus instance. The worker
+# derives the WebSocket, getToken, REST and cookie-domain values from this, so
+# the code carries no hardcoded organisation URL.
+TEAMPLUS_BASE="https://team.your-org.example"

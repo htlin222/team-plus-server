@@ -1,0 +1,22 @@
+{
+  "name": "teamplus-cloud-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.13.1",
+  "scripts": {
+    "check": "wrangler check",
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "typecheck": "tsc --noEmit",
+    "types": "wrangler types"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.15.15"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "typescript": "^5.5.0",
+    "wrangler": "^4.90.0"
+  }
+}

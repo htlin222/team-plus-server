@@ -86,8 +86,26 @@ cd ..
 ./scripts/refresh_and_upload_cf.sh           # refresh cookies + push to worker
 ```
 
-Cookies rotate (~weekly), so schedule `./scripts/refresh_and_upload_cf.sh` (e.g.
-launchd/cron every 3 days) to keep both the daemon and the cloud session alive.
+The TeamPlus session token (TSSID) lives ~1 day, so schedule
+`./scripts/refresh_and_upload_cf.sh` to keep the cloud session alive. Locally
+that's launchd/cron; to drop the laptop entirely, run it from CI.
+
+## Keeping cookies fresh in the cloud (GitHub Actions)
+
+`.github/workflows/refresh-cookies.yml.example` runs the cookie refresh on a
+GitHub-hosted runner (Chromium + Tesseract) and uploads to your worker — no
+machine of your own needed. Recommended split for open-sourcing:
+
+- **Public repo** — the code, with the workflow as a `.example` template only.
+- **Private repo** — your actual deployment: copy the template to
+  `.github/workflows/refresh-cookies.yml` and add the five Secrets it lists
+  (`TEAMPLUS_ACCOUNT`, `TEAMPLUS_PASSWORD`, `TEAMPLUS_BASE`,
+  `CF_TEAMPLUS_WORKER_URL`, `CF_TEAMPLUS_UPLOAD_SECRET`).
+
+GitHub Actions Secrets are encrypted, never stored in the repo, and masked in
+logs — open-sourcing the code does not expose them. Keep the running workflow in
+the private repo and use only `schedule` / `workflow_dispatch` triggers (never
+`pull_request`) so fork PRs can never reach the secrets.
 
 ## Configuration & secrets
 

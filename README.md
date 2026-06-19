@@ -34,7 +34,7 @@ specific organisation is baked into the source.
 - 🏷️ **Name resolution** — numeric sender/chat IDs are resolved to real names via the TeamPlus REST API (cached per session).
 - 🖼️ **Attachment archive** — images and files are downloaded and stored in R2; rich flex cards are kept as JSON.
 - 🔗 **Time-limited viewer links** — signed, browser-openable URLs for any attachment that the worker hard-caps to expire within a week.
-- 🔑 **Read API** — `GET /v1/logs` returns recent messages as JSON (default 24h, up to 7 days), gated by a shareable read-only key.
+- 🔑 **Read API** — `GET /v1/logs` returns recent messages as JSON (default 24h, up to 7 days), gated by a shareable read-only key. Browse from the CLI with `./scripts/logs.mjs` (see the [Playbook](docs/PLAYBOOK.md)).
 - 📲 **Telegram bridge** — incoming messages mirror to a Telegram bot DM; reply, or have an assistant draft replies, from your phone.
 - ♻️ **Self-healing** — the Durable Object reconnects on drops, with a cron keepalive as backstop.
 - ☁️ **No laptop required** — cookie refresh runs as a GitHub Actions cron.
@@ -71,7 +71,8 @@ cookies (~daily), which a GitHub Actions cron handles for you.
 | --- | --- |
 | `channel/` | Bun daemon: TeamPlus WebSocket ↔ Telegram bridge + MCP server |
 | `worker/`  | Cloudflare Worker + Durable Object → Turso archive (see `worker/README.md`) |
-| `scripts/` | Cookie refresh (Patchright + Tesseract OCR) and signed cloud upload |
+| `scripts/` | Cookie refresh (Patchright + Tesseract OCR), signed upload, `logs.mjs`/`attachment_url.mjs`/`healthcheck.mjs` helpers |
+| `docs/`    | [Operations playbook](docs/PLAYBOOK.md) — querying logs, monitoring, key rotation, troubleshooting |
 | `.claude/` | `dms` skill + a Stop-hook that relays assistant replies to Telegram |
 | `Makefile` | Daemon lifecycle (`make start` / `stop` / `logs`, launchd-managed) |
 

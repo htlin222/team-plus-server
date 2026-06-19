@@ -29,6 +29,22 @@ export async function verifySignedRequest(
   }
 }
 
+/**
+ * Verify a time-limited attachment viewer token. The signed message is
+ * `${key}\n${exp}` (exp = unix seconds), matching scripts/attachment_url.mjs.
+ * Expiry enforcement (incl. the 1-week cap) is the caller's responsibility.
+ */
+export async function verifyViewerToken(
+  secret: string,
+  key: string,
+  exp: string,
+  signature: string,
+): Promise<boolean> {
+  if (!secret) return false
+  const expected = await hmacSha256Hex(secret, `${key}\n${exp}`)
+  return timingSafeEqualHex(signature, expected)
+}
+
 async function hmacSha256Hex(secret: string, message: string): Promise<string> {
   const enc = new TextEncoder()
   const key = await crypto.subtle.importKey(

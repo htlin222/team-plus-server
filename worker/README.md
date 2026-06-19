@@ -40,6 +40,18 @@ text row is still saved) and can be repaired later:
 ./scripts/cf_worker_request.mjs POST /v1/sessions/default/backfill-attachments '{"limit":50}'
 ```
 
+### Viewing an attachment
+
+`GET /a?key=...&exp=...&sig=...` streams an R2 object in the browser. The link
+is HMAC-signed with `COOKIE_UPLOAD_SECRET` and **expires within one week** — the
+worker rejects any link minted to live longer (400) or already past `exp` (410),
+regardless of the secret. Mint one from the repo root:
+
+```sh
+./scripts/attachment_url.mjs <attachment_key | event_key | batch_id>
+# → https://<worker>/a?key=...&exp=...&sig=...   (valid 1 week)
+```
+
 ## Local Cookie Refresh Upload
 
 From repo root:

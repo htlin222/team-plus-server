@@ -1,0 +1,39 @@
+# Daily worker health check → Telegram report.
+#
+# Copy to `.github/workflows/healthcheck.yml` in your PRIVATE deployment repo.
+# Probes the worker's signed status endpoint, counts messages in Turso, and
+# posts a one-line report to your Telegram bot. Fails the job (CI alert) when
+# the worker is unhealthy: not connected, has a lastError, or the cookie is
+# stale (>36h, i.e. the refresh cron stopped working).
+#
+# Required Secrets (same five as the cookie-refresh workflow, plus):
+#   TURSO_URL, TURSO_AUTH_TOKEN     — optional, adds message counts
+#   TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID — optional, sends the report
+# (CF_TEAMPLUS_WORKER_URL + CF_TEAMPLUS_UPLOAD_SECRET are required.)
+
+name: worker-healthcheck
+
+on:
+  schedule:
+    - cron: '0 1 * * *' # daily 01:00 UTC (09:00 Asia/Taipei)
+  workflow_dispatch: {}
+
+jobs:
+  healthcheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Probe worker and report
+        env:
+          CF_TEAMPLUS_WORKER_URL: ${{ secrets.CF_TEAMPLUS_WORKER_URL }}
+          CF_TEAMPLUS_ACCOUNT_ID: default
+          CF_TEAMPLUS_UPLOAD_SECRET: ${{ secrets.CF_TEAMPLUS_UPLOAD_SECRET }}
+          TURSO_URL: ${{ secrets.TURSO_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: node scripts/healthcheck.mjs

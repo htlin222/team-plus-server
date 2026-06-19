@@ -42,7 +42,12 @@ const lines = [
   `connected: ${status.connected} · myId: ${status.myId ?? '—'}`,
   `cookie age: ${fmtAge(cookieAgeH)} · last msg: ${fmtAge(lastMsgAgeH)} ago`,
 ]
-if (counts) lines.push(`messages: ${counts.total} total, ${counts.last24} in 24h`)
+if (counts) {
+  lines.push(
+    `messages: ${counts.total} total · 24h: ${counts.last24}` +
+      ` (${counts.in24} in / ${counts.out24} out, ${counts.files24} files)`,
+  )
+}
 if (problems.length) lines.push(`⚠ ${problems.join('; ')}`)
 const report = lines.join('\n')
 
@@ -71,9 +76,13 @@ async function signedGet(path) {
 
 async function tursoCounts() {
   const httpUrl = process.env.TURSO_URL.replace(/^libsql:/, 'https:').replace(/\/+$/, '')
+  const t = "(strftime('%s','now')*1000 - 86400000)"
   const sql =
-    "select count(*) as total, " +
-    "sum(case when received_at_ms > (strftime('%s','now')*1000 - 86400000) then 1 else 0 end) as last24 " +
+    'select count(*) as total, ' +
+    `sum(case when received_at_ms > ${t} then 1 else 0 end) as last24, ` +
+    `sum(case when received_at_ms > ${t} and direction='in' then 1 else 0 end) as in24, ` +
+    `sum(case when received_at_ms > ${t} and direction='out' then 1 else 0 end) as out24, ` +
+    `sum(case when received_at_ms > ${t} and attachment_key is not null then 1 else 0 end) as files24 ` +
     'from messages'
   const res = await fetch(`${httpUrl}/v2/pipeline`, {
     method: 'POST',
@@ -88,7 +97,14 @@ async function tursoCounts() {
   if (!res.ok) throw new Error(`turso ${res.status}`)
   const data = await res.json()
   const row = data.results[0].response.result.rows[0]
-  return { total: Number(row[0].value), last24: Number(row[1].value ?? 0) }
+  const cell = i => Number(row[i]?.value ?? 0)
+  return {
+    total: cell(0),
+    last24: cell(1),
+    in24: cell(2),
+    out24: cell(3),
+    files24: cell(4),
+  }
 }
 
 async function sendTelegram(text) {

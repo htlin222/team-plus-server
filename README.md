@@ -1,5 +1,15 @@
 # team-plus-server
 
+> Own your TeamPlus history — capture every message (and image, and file) into your own cloud database, and bridge it to Telegram. No laptop required.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-F38020?logo=cloudflare&logoColor=white)](https://workers.cloudflare.com/)
+[![Turso](https://img.shields.io/badge/Turso-libSQL-4FF8D2?logo=turso&logoColor=black)](https://turso.tech/)
+[![Bun](https://img.shields.io/badge/Bun-000?logo=bun&logoColor=white)](https://bun.sh/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![last commit](https://img.shields.io/github/last-commit/htlin222/team-plus-server)](https://github.com/htlin222/team-plus-server/commits/main)
+
 Self-hosted tooling around a [TeamPlus](https://www.teamplus.tech/) account:
 
 1. **Telegram bridge** — a long-lived daemon that mirrors your incoming
@@ -17,6 +27,17 @@ specific organisation is baked into the source.
 > **Heads-up:** TeamPlus has no public API. This drives the same endpoints the
 > web client uses, authenticated with session cookies you refresh yourself.
 > Use it only with your own account and within your organisation's policies.
+
+## Features
+
+- 🗄️ **Cloud message archive** — a Durable Object holds the TeamPlus WebSocket and writes every message to Turso: who, when, which chat, direction, content. DMs, groups, and bots.
+- 🏷️ **Name resolution** — numeric sender/chat IDs are resolved to real names via the TeamPlus REST API (cached per session).
+- 🖼️ **Attachment archive** — images and files are downloaded and stored in R2; rich flex cards are kept as JSON.
+- 🔗 **Time-limited viewer links** — signed, browser-openable URLs for any attachment that the worker hard-caps to expire within a week.
+- 📲 **Telegram bridge** — incoming messages mirror to a Telegram bot DM; reply, or have an assistant draft replies, from your phone.
+- ♻️ **Self-healing** — the Durable Object reconnects on drops, with a cron keepalive as backstop.
+- ☁️ **No laptop required** — cookie refresh runs as a GitHub Actions cron.
+- 🤖 **MCP server** — exposes the bridge to Claude Code.
 
 ## Architecture
 
@@ -40,7 +61,8 @@ specific organisation is baked into the source.
 ```
 
 The two halves are independent — run either or both. The cloud archive needs no
-local process once deployed; you only re-upload fresh cookies every few days.
+local process once deployed; the only recurring task is re-uploading fresh
+cookies (~daily), which a GitHub Actions cron handles for you.
 
 ## Repo layout
 

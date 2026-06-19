@@ -17,6 +17,7 @@ import {
 } from './turso'
 import { dmPeerId, loadChatRoomNames, lookupContactNames } from './contacts'
 import { attachmentKey, downloadAttachment, parseAttachment } from './attachments'
+import { sendChatMessage, type SendResult } from './send'
 
 const SESSION_KEY = 'session'
 const PING_MS = 30_000
@@ -139,6 +140,40 @@ export class TeamplusSession extends DurableObject<Env> {
       await this.ensureConnected()
     }
     return this.status()
+  }
+
+  /** Send an outbound message. DM: pass `to` (peer userNo). */
+  async send(input: {
+    to?: number
+    chatId?: string
+    text: string
+    channelType?: number
+  }): Promise<SendResult & { chatId: string }> {
+    if (!this.session?.cookieHeader) throw new Error('no cookies uploaded yet')
+    if (!input.text) throw new Error('text is required')
+    const channelType = input.channelType ?? 0
+
+    let chatId = input.chatId ?? ''
+    let recipients: Array<{ mobile: string }> = []
+    if (channelType === 0) {
+      if (input.to == null) throw new Error('to (peer userNo) is required for a DM')
+      const myId = this.session.myId
+      if (myId == null) throw new Error('myId unknown — upload cookies first')
+      chatId = chatId || [myId, input.to].sort((a, b) => a - b).join('_')
+      recipients = [{ mobile: String(input.to) }]
+    } else if (!chatId) {
+      throw new Error('chatId is required for a group send')
+    }
+
+    const base = resolveTeamplusBase(this.env)
+    const result = await sendChatMessage(base, this.session.cookieHeader, {
+      chatId,
+      channelType,
+      recipients,
+      content: input.text,
+    })
+    await this.logEvent('sent', `${chatId} ok=${result.isSuccess}`)
+    return { ...result, chatId }
   }
 
   async alarm(): Promise<void> {

@@ -48,6 +48,17 @@ curl -s -H "X-API-Key: $KEY" "$W/v1/logs?days=7" | jq -r '.messages[] | select(.
 Window: `?hours=N` / `?days=N`, default **24h**, hard-capped at **7 days**.
 `?limit=N` caps rows (max 2000). Missing/invalid key → `401`.
 
+## Sending a message
+
+```sh
+./scripts/send.mjs --to 1344 --text "晚點回你"      # DM by peer userNo (= sender_id in the log)
+./scripts/send.mjs --chat-id 1049_1344 --text "…"  # explicit chat id
+```
+
+Goes through the worker (cloud), so it works with the laptop off. Admin-signed
+with `CF_TEAMPLUS_UPLOAD_SECRET`. DMs only for now (group sends need a member
+list). The sent message — and any reply — is captured back into the log.
+
 ## Viewing an attachment
 
 The API and `logs.mjs --url` already give a signed viewer URL per attachment.

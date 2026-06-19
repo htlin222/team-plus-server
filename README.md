@@ -36,6 +36,7 @@ specific organisation is baked into the source.
 - 🔗 **Time-limited viewer links** — signed, browser-openable URLs for any attachment that the worker hard-caps to expire within a week.
 - 🔑 **Read API** — `GET /v1/logs` returns recent messages as JSON (default 24h, up to 7 days), gated by a shareable read-only key. Browse from the CLI with `./scripts/logs.mjs` (see the [Playbook](docs/PLAYBOOK.md)).
 - 📲 **Telegram bridge** — incoming messages mirror to a Telegram bot DM; reply, or have an assistant draft replies, from your phone.
+- ✉️ **Send from anywhere** — `./scripts/send.mjs --to <userNo> --text "…"` sends a TeamPlus DM through the worker, no local daemon required.
 - ♻️ **Self-healing** — the Durable Object reconnects on drops, with a cron keepalive as backstop.
 - ☁️ **No laptop required** — cookie refresh runs as a GitHub Actions cron.
 - 🤖 **MCP server** — exposes the bridge to Claude Code.

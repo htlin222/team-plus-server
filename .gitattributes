@@ -1,0 +1,5 @@
+# Machine-generated / vendored files: collapse in diffs and exclude from
+# GitHub's language statistics.
+worker/worker-configuration.d.ts linguist-generated=true
+worker/pnpm-lock.yaml linguist-generated=true
+channel/bun.lock linguist-generated=true

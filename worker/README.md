@@ -4,9 +4,11 @@ Cloudflare Worker + Durable Object session layer for TeamPlus message capture.
 
 ## Shape
 
-- `src/index.ts`: signed HTTP API for cookie upload, status, start, stop, nudge.
+- `src/index.ts`: signed HTTP API for cookie upload, status, start, stop, nudge, backfill.
 - `src/session.ts`: one Durable Object per TeamPlus account; owns cookie state and the TeamPlus WebSocket.
 - `src/turso.ts`: inserts normalized `IM_CHAT:NEW_MESSAGE` events into Turso.
+- `src/contacts.ts`: resolves sender/chat names via the TeamPlus REST API.
+- `src/attachments.ts`: downloads image/file messages and archives them to R2.
 - `schema.sql`: Turso tables for message history and session events.
 
 ## Setup
@@ -15,12 +17,28 @@ Cloudflare Worker + Durable Object session layer for TeamPlus message capture.
 cd worker
 pnpm install
 turso auth login
-./scripts/setup_turso.sh teamplus-messages
+./scripts/setup_turso.sh teamplus-messages   # Turso DB + secrets + .dev.vars
+wrangler r2 bucket create teamplus-attachments
+#   → edit worker/.dev.vars and set TEAMPLUS_BASE
 ./scripts/push_secrets.sh
 wrangler deploy
 ```
 
 After deploy, edit `../.cf-worker.env` and set `CF_TEAMPLUS_WORKER_URL` to the deployed `workers.dev` URL.
+
+## Attachments
+
+Image (`msg_type` 205) and file (206) messages carry no bytes — only a
+`FileName` reference in `Content2`. The Durable Object downloads the file from
+`DownloadFileHandler.ashx` with the session cookie, stores it in the
+`teamplus-attachments` R2 bucket under `attachments/<batchID>/<fileName>`, and
+records that key in the `attachment_key` column. Failures are non-fatal (the
+text row is still saved) and can be repaired later:
+
+```sh
+# archive any messages whose attachment isn't stored yet
+./scripts/cf_worker_request.mjs POST /v1/sessions/default/backfill-attachments '{"limit":50}'
+```
 
 ## Local Cookie Refresh Upload
 
@@ -46,6 +64,7 @@ All session endpoints require the same HMAC signature headers:
 - `POST /v1/sessions/default/start`
 - `POST /v1/sessions/default/stop`
 - `POST /v1/sessions/default/nudge`
+- `POST /v1/sessions/default/backfill-attachments` (`{"limit":50}`)
 
 `GET /health` is unsigned and returns a basic liveness response.
 

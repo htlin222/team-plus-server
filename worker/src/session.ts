@@ -9,8 +9,14 @@ import {
   type CookieRecord,
   type TeamplusMessage,
 } from './teamplus'
-import { insertMessage, insertSessionEvent } from './turso'
+import {
+  insertMessage,
+  insertSessionEvent,
+  selectPendingAttachments,
+  updateAttachmentKey,
+} from './turso'
 import { dmPeerId, loadChatRoomNames, lookupContactNames } from './contacts'
+import { attachmentKey, downloadAttachment, parseAttachment } from './attachments'
 
 const SESSION_KEY = 'session'
 const PING_MS = 30_000
@@ -223,6 +229,70 @@ export class TeamplusSession extends DurableObject<Env> {
       this.session.lastEventKey = message.eventKey
       await this.persist()
     }
+    await this.archiveAttachment(message)
+  }
+
+  /**
+   * If the message carries an image/file, download the bytes from TeamPlus and
+   * archive them to R2, then record the object key on the row. Best-effort: a
+   * failure leaves attachment_key null (and can be backfilled later).
+   */
+  private async archiveAttachment(message: TeamplusMessage): Promise<boolean> {
+    return this.archiveOne({
+      eventKey: message.eventKey,
+      content2: message.content2,
+      batchId: message.batchId,
+      channelType: message.channelType,
+      chatId: message.chatId,
+      senderId: message.senderId,
+    })
+  }
+
+  private async archiveOne(row: {
+    eventKey: string
+    content2: string | null
+    batchId: string | null
+    channelType: number | null
+    chatId: string
+    senderId: number | null
+  }): Promise<boolean> {
+    const cookieHeader = this.session?.cookieHeader
+    if (!cookieHeader || !row.batchId) return false
+    const meta = parseAttachment(row.content2)
+    if (!meta) return false
+    try {
+      const dl = await downloadAttachment(resolveTeamplusBase(this.env), cookieHeader, {
+        fileName: meta.fileName,
+        channelType: row.channelType,
+        batchId: row.batchId,
+      })
+      if (!dl) return false
+      const key = attachmentKey(row.batchId, meta.fileName)
+      await this.env.ATTACHMENTS.put(key, dl.bytes, {
+        httpMetadata: { contentType: dl.contentType },
+        customMetadata: {
+          showName: meta.showName ?? '',
+          chatId: row.chatId,
+          senderId: String(row.senderId ?? ''),
+        },
+      })
+      await updateAttachmentKey(this.env, row.eventKey, key)
+      return true
+    } catch (err) {
+      console.error(`attachment archive failed (${row.eventKey}): ${err}`)
+      return false
+    }
+  }
+
+  /** Archive any not-yet-stored image/file attachments. Re-runnable repair op. */
+  async backfillAttachments(limit = 50): Promise<{ scanned: number; archived: number }> {
+    if (!this.session?.cookieHeader) throw new Error('no cookies uploaded yet')
+    const rows = await selectPendingAttachments(this.env, limit)
+    let archived = 0
+    for (const row of rows) {
+      if (await this.archiveOne(row)) archived++
+    }
+    return { scanned: rows.length, archived }
   }
 
   /**

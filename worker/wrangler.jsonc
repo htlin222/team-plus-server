@@ -27,6 +27,12 @@
       }
     ]
   },
+  "r2_buckets": [
+    {
+      "binding": "ATTACHMENTS",
+      "bucket_name": "teamplus-attachments"
+    }
+  ],
   "migrations": [
     {
       "tag": "v1",

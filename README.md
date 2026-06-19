@@ -32,7 +32,7 @@ specific organisation is baked into the source.
             │ • Telegram bridge      │   │   cookie + WS, self-heals   │
             │ • MCP server for       │   │ • normalises every message  │
             │   Claude Code          │   │ • resolves sender/chat names│
-            └───────────┬────────────┘   │ • inserts into Turso        │
+            └───────────┬────────────┘   │ • Turso + R2 attachments    │
                         │                 └─────────────┬───────────────┘
                  Telegram bot DM                        │
                         │                          Turso (SQLite)

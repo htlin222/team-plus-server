@@ -64,6 +64,10 @@ async function dispatchSessionRoute(
     if (method === 'POST' && action === 'nudge') {
       return json(await stub.nudge())
     }
+    if (method === 'POST' && action === 'backfill-attachments') {
+      const body = bodyText ? (JSON.parse(bodyText) as { limit?: number }) : {}
+      return json(await stub.backfillAttachments(body.limit))
+    }
     return json({ error: 'method not allowed' }, 405)
   } catch (err) {
     return json({ error: String(err) }, 500)
@@ -71,7 +75,7 @@ async function dispatchSessionRoute(
 }
 
 function matchSessionRoute(pathname: string): { accountId: string; action: string } | null {
-  const match = /^\/v1\/sessions\/([^/]+)\/(cookies|status|start|stop|nudge)$/.exec(pathname)
+  const match = /^\/v1\/sessions\/([^/]+)\/(cookies|status|start|stop|nudge|backfill-attachments)$/.exec(pathname)
   if (!match) return null
   return {
     accountId: decodeURIComponent(match[1]!),

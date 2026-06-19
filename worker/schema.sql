@@ -14,7 +14,9 @@ create table if not exists messages (
   content2 text,
   teamplus_ts_ms integer,
   received_at_ms integer not null,
-  raw_json text not null
+  raw_json text not null,
+  -- R2 object key for a downloaded image/file attachment (null for text msgs).
+  attachment_key text
 );
 
 create index if not exists messages_chat_time_idx

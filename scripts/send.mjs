@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 // Send a TeamPlus message via the worker (cloud — no local daemon needed).
 //
-//   ./scripts/send.mjs --to 1344 --text "晚點回你"     # DM to a peer userNo
-//   ./scripts/send.mjs --chat-id 1049_1344 --text "…"  # explicit chat id
+//   ./scripts/send.mjs --to 1344 --text "晚點回你"            # DM to a peer userNo
+//   ./scripts/send.mjs --chat-id 1049_1344 --text "…"         # explicit DM chat id
+//   ./scripts/send.mjs --chat-id <group-guid> --text "…"      # group (auto-detected)
 //
-// Admin-signed with CF_TEAMPLUS_UPLOAD_SECRET (read from .cf-worker.env).
+// Chat id shaped "n_n" is a DM (channelType 0); anything else (a GUID) is a
+// group (channelType 1). Admin-signed with CF_TEAMPLUS_UPLOAD_SECRET.
 import { createHmac } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
@@ -23,9 +25,11 @@ const workerUrl = requiredEnv('CF_TEAMPLUS_WORKER_URL').replace(/\/+$/, '')
 const secret = requiredEnv('CF_TEAMPLUS_UPLOAD_SECRET')
 const account = process.env.CF_TEAMPLUS_ACCOUNT_ID || 'default'
 const path = `/v1/sessions/${encodeURIComponent(account)}/send`
+const isGroup = args['chat-id'] && !/^\d+_\d+$/.test(args['chat-id'])
 const body = JSON.stringify({
   ...(args.to != null ? { to: Number(args.to) } : {}),
   ...(args['chat-id'] ? { chatId: args['chat-id'] } : {}),
+  ...(isGroup ? { channelType: 1 } : {}),
   text: args.text,
 })
 

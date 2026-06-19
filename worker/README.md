@@ -128,12 +128,14 @@ The Durable Object can send outbound messages with its session cookie — so you
 can reply from anywhere, with no local daemon. Admin-signed; use the helper:
 
 ```sh
-./scripts/send.mjs --to 1344 --text "晚點回你"      # DM to a peer userNo
-./scripts/send.mjs --chat-id 1049_1344 --text "…"  # explicit chat id
+./scripts/send.mjs --to 1344 --text "晚點回你"          # DM to a peer userNo
+./scripts/send.mjs --chat-id 1049_1344 --text "…"      # explicit DM chat id
+./scripts/send.mjs --chat-id <group-guid> --text "…"   # group (auto-detected)
 ```
 
-`--to` is the peer's `sender_id` from the log. DMs are supported; group sends
-need a member list and aren't wired up yet.
+`--to` is the peer's `sender_id` from the log. A chat id shaped `n_n` is a DM;
+a GUID is a group (sent with `channelType:1` — existing groups resolve from the
+chat id, no member list needed). Group `chat_id` values appear in the log too.
 
 `GET /health` is unsigned and returns a basic liveness response.
 

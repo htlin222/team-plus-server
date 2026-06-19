@@ -51,13 +51,15 @@ Window: `?hours=N` / `?days=N`, default **24h**, hard-capped at **7 days**.
 ## Sending a message
 
 ```sh
-./scripts/send.mjs --to 1344 --text "晚點回你"      # DM by peer userNo (= sender_id in the log)
-./scripts/send.mjs --chat-id 1049_1344 --text "…"  # explicit chat id
+./scripts/send.mjs --to 1344 --text "晚點回你"          # DM by peer userNo (= sender_id in the log)
+./scripts/send.mjs --chat-id 1049_1344 --text "…"      # explicit DM chat id
+./scripts/send.mjs --chat-id <group-guid> --text "…"   # group (chat_id from the log)
 ```
 
 Goes through the worker (cloud), so it works with the laptop off. Admin-signed
-with `CF_TEAMPLUS_UPLOAD_SECRET`. DMs only for now (group sends need a member
-list). The sent message — and any reply — is captured back into the log.
+with `CF_TEAMPLUS_UPLOAD_SECRET`. Both DMs and groups work — a `n_n` chat id is a
+DM, a GUID is a group (existing groups resolve from the chat id, no member list
+needed). The sent message — and any reply — is captured back into the log.
 
 ## Viewing an attachment
 

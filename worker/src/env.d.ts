@@ -1,10 +1,16 @@
-// TEAMPLUS_BASE is supplied as a runtime secret (worker/.dev.vars in local dev,
-// `wrangler secret put` in production) and is therefore not emitted into
-// worker-configuration.d.ts by `wrangler types`. Declare it here so the rest
-// of the worker can read env.TEAMPLUS_BASE in a type-safe way.
+// Runtime secrets, supplied via worker/.dev.vars in local dev and
+// `wrangler secret put` in production (see scripts/push_secrets.sh).
 //
-// Keep this file free of imports/exports so the `Env` augmentation stays global
-// and merges with the generated `interface Env extends __BaseEnv_Env {}`.
+// Current `wrangler types` does NOT emit secret types into
+// worker-configuration.d.ts, so we declare them here. Keeping them in this
+// hand-maintained file (rather than the generated one) means the build stays
+// correct even after someone re-runs `wrangler types`.
+//
+// This file must stay free of imports/exports so the `Env` augmentation stays
+// global and merges with the generated `interface Env extends __BaseEnv_Env {}`.
 interface Env {
   TEAMPLUS_BASE: string
+  TURSO_URL: string
+  TURSO_AUTH_TOKEN: string
+  COOKIE_UPLOAD_SECRET: string
 }

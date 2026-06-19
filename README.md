@@ -1,0 +1,109 @@
+# team-plus-server
+
+Self-hosted tooling around a [TeamPlus](https://www.teamplus.tech/) account:
+
+1. **Telegram bridge** — a long-lived daemon that mirrors your incoming
+   TeamPlus messages to a Telegram bot DM and lets you reply (or have an
+   assistant draft replies) from your phone.
+2. **Cloud archive** — an always-on Cloudflare Worker that captures every
+   message into your own [Turso](https://turso.tech/) (SQLite) database, so you
+   have a private, queryable log of *who said what, when, where* — DMs, groups,
+   and bots — without keeping a laptop running.
+
+Both talk to TeamPlus over the same authenticated WebSocket + REST endpoints.
+The TeamPlus instance URL is configured via `TEAMPLUS_BASE`; nothing about a
+specific organisation is baked into the source.
+
+> **Heads-up:** TeamPlus has no public API. This drives the same endpoints the
+> web client uses, authenticated with session cookies you refresh yourself.
+> Use it only with your own account and within your organisation's policies.
+
+## Architecture
+
+```
+                          ┌─────────────────────────────┐
+   your TeamPlus account  │  TeamPlus (TEAMPLUS_BASE)    │
+                          └───────────┬─────────────────┘
+              WebSocket + REST (session cookies)
+                          ┌───────────┴───────────┐
+            ┌─────────────▼──────────┐   ┌─────────▼───────────────────┐
+            │ channel/  (Bun daemon) │   │ worker/  (Cloudflare Worker)│
+            │ • TeamPlus WS listener │   │ • Durable Object holds the  │
+            │ • Telegram bridge      │   │   cookie + WS, self-heals   │
+            │ • MCP server for       │   │ • normalises every message  │
+            │   Claude Code          │   │ • resolves sender/chat names│
+            └───────────┬────────────┘   │ • inserts into Turso        │
+                        │                 └─────────────┬───────────────┘
+                 Telegram bot DM                        │
+                        │                          Turso (SQLite)
+                     your phone                  who / when / where / what
+```
+
+The two halves are independent — run either or both. The cloud archive needs no
+local process once deployed; you only re-upload fresh cookies every few days.
+
+## Repo layout
+
+| Path | What |
+| --- | --- |
+| `channel/` | Bun daemon: TeamPlus WebSocket ↔ Telegram bridge + MCP server |
+| `worker/`  | Cloudflare Worker + Durable Object → Turso archive (see `worker/README.md`) |
+| `scripts/` | Cookie refresh (Patchright + Tesseract OCR) and signed cloud upload |
+| `.claude/` | `dms` skill + a Stop-hook that relays assistant replies to Telegram |
+| `Makefile` | Daemon lifecycle (`make start` / `stop` / `logs`, launchd-managed) |
+
+## Prerequisites
+
+- [Bun](https://bun.sh/) — runs the `channel/` daemon
+- Node.js + [pnpm](https://pnpm.io/) — runs the worker tooling
+- Python 3 — cookie refresh (a venv is bootstrapped automatically)
+- [Tesseract](https://github.com/tesseract-ocr/tesseract) — captcha OCR (`brew install tesseract`)
+- For the cloud archive: [`wrangler`](https://developers.cloudflare.com/workers/wrangler/),
+  the [`turso`](https://docs.turso.tech/cli/installation) CLI, and a Cloudflare + Turso account
+
+## Setup
+
+```sh
+# 1. Configuration
+cp .env.example .env          # set TEAMPLUS_BASE + your TeamPlus login
+./scripts/setup_telegram.sh   # writes .telegram.json (bot token + chat_id)
+
+# 2. First cookie capture (also fills my_id in .config.json)
+./scripts/refresh.sh          # headless login + OCR; --headful to watch
+
+# 3a. Run the Telegram bridge daemon
+make start                    # launchd-managed; `make logs` to tail
+
+# 3b. (optional) Deploy the cloud archive
+cd worker
+pnpm install
+turso auth login
+./scripts/setup_turso.sh teamplus-messages   # creates DB + schema + secrets
+#   → edit worker/.dev.vars and set TEAMPLUS_BASE
+./scripts/push_secrets.sh && wrangler deploy
+#   → set CF_TEAMPLUS_WORKER_URL in ../.cf-worker.env to the deployed URL
+cd ..
+./scripts/refresh_and_upload_cf.sh           # refresh cookies + push to worker
+```
+
+Cookies rotate (~weekly), so schedule `./scripts/refresh_and_upload_cf.sh` (e.g.
+launchd/cron every 3 days) to keep both the daemon and the cloud session alive.
+
+## Configuration & secrets
+
+All secrets live in gitignored files; templates are committed:
+
+| File | Holds | Template |
+| --- | --- | --- |
+| `.env` | `TEAMPLUS_BASE`, TeamPlus login | `.env.example` |
+| `.telegram.json` | Telegram bot token + chat_id | `scripts/setup_telegram.sh` |
+| `.config.json` | your TeamPlus `my_id` + mute lists | auto-filled |
+| `cookies.json` | captured session cookies | `scripts/refresh.sh` |
+| `worker/.dev.vars` | Turso creds, upload secret, `TEAMPLUS_BASE` | `worker/.dev.vars.example` |
+| `.cf-worker.env` | deployed worker URL + upload secret | `worker/scripts/setup_turso.sh` |
+
+Nothing in version control contains a real credential or organisation URL.
+
+## License
+
+[MIT](LICENSE).

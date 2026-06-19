@@ -56,6 +56,7 @@ for (const m of msgs.slice().reverse()) {
   const who = m.sender_name || m.sender_id
   const body = m.content || (m.attachment ? `📎 ${m.attachment.name}` : '(non-text)')
   console.log(`${t} ${dir} ${who}: ${body}`)
+  if (opts.ids && m.id) console.log(`           id: ${m.id}   (reply: send.mjs --reply ${m.id} …)`)
   if (opts.url && m.attachment) console.log(`           ${m.attachment.url}`)
 }
 
@@ -68,6 +69,7 @@ function parseArgs(argv) {
     else if (a === '--out') o.out = true
     else if (a === '--files') o.files = true
     else if (a === '--url') o.url = true
+    else if (a === '--ids') o.ids = true
     else if (a === '--json') o.json = true
     else if (a === '--hours') o.hours = Number(argv[++i])
     else if (a === '--days') o.days = Number(argv[++i])

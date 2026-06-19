@@ -86,6 +86,7 @@ async function dispatchSessionRoute(
         chatId?: string
         text: string
         channelType?: number
+        replyBatchId?: string
       }
       return json(await stub.send(body))
     }
@@ -146,6 +147,7 @@ async function serveLogs(request: Request, url: URL, env: Env): Promise<Response
       }
     }
     messages.push({
+      id: r.batchId,
       ts: new Date(r.teamplusTsMs ?? r.receivedAtMs).toISOString(),
       direction: r.direction,
       channel_type: r.channelType,

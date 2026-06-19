@@ -148,6 +148,7 @@ export class TeamplusSession extends DurableObject<Env> {
     chatId?: string
     text: string
     channelType?: number
+    replyBatchId?: string
   }): Promise<SendResult & { chatId: string }> {
     if (!this.session?.cookieHeader) throw new Error('no cookies uploaded yet')
     if (!input.text) throw new Error('text is required')
@@ -171,6 +172,7 @@ export class TeamplusSession extends DurableObject<Env> {
       channelType,
       recipients,
       content: input.text,
+      replyBatchId: input.replyBatchId,
     })
     await this.logEvent('sent', `${chatId} ok=${result.isSuccess}`)
     return { ...result, chatId }

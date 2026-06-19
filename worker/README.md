@@ -137,6 +137,14 @@ can reply from anywhere, with no local daemon. Admin-signed; use the helper:
 a GUID is a group (sent with `channelType:1` — existing groups resolve from the
 chat id, no member list needed). Group `chat_id` values appear in the log too.
 
+Quote-reply a specific message with `--reply <id>` (the message `id` from
+`/v1/logs`, shown by `logs.mjs --ids`):
+
+```sh
+./scripts/logs.mjs --from 邱子玲 --ids        # find the message id to reply to
+./scripts/send.mjs --to 1708 --reply <id> --text "收到"
+```
+
 `GET /health` is unsigned and returns a basic liveness response.
 
 From repo root, use the helper for signed calls:

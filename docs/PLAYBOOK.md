@@ -61,6 +61,14 @@ with `CF_TEAMPLUS_UPLOAD_SECRET`. Both DMs and groups work — a `n_n` chat id i
 DM, a GUID is a group (existing groups resolve from the chat id, no member list
 needed). The sent message — and any reply — is captured back into the log.
 
+Quote-reply a specific message with `--reply <id>` (get the id from
+`logs.mjs --ids`, which prints each message's id and a ready-to-paste command):
+
+```sh
+./scripts/logs.mjs --days 1 --ids
+./scripts/send.mjs --to 1344 --reply 7071b7aa-… --text "收到"
+```
+
 ## Viewing an attachment
 
 The API and `logs.mjs --url` already give a signed viewer URL per attachment.

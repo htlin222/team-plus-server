@@ -90,6 +90,7 @@ export async function selectPendingAttachments(
 }
 
 export type LogRow = {
+  batchId: string | null
   teamplusTsMs: number | null
   receivedAtMs: number
   direction: string
@@ -116,7 +117,7 @@ export async function selectRecentMessages(
   })
   const res = await client.execute({
     sql: `
-      select teamplus_ts_ms, received_at_ms, direction, channel_type, chat_id, chat_name,
+      select batch_id, teamplus_ts_ms, received_at_ms, direction, channel_type, chat_id, chat_name,
              sender_id, sender_name, msg_type, content, attachment_key,
              case when json_valid(content2) then json_extract(content2, '$.ShowName') end
                as attachment_name
@@ -131,6 +132,7 @@ export async function selectRecentMessages(
   // JSON-serialisable (Response.json throws on BigInt).
   const num = (v: unknown): number | null => (v === null || v === undefined ? null : Number(v))
   return res.rows.map(r => ({
+    batchId: (r.batch_id as string | null) ?? null,
     teamplusTsMs: num(r.teamplus_ts_ms),
     receivedAtMs: Number(r.received_at_ms),
     direction: String(r.direction),

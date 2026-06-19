@@ -30,6 +30,7 @@ const body = JSON.stringify({
   ...(args.to != null ? { to: Number(args.to) } : {}),
   ...(args['chat-id'] ? { chatId: args['chat-id'] } : {}),
   ...(isGroup ? { channelType: 1 } : {}),
+  ...(args.reply ? { replyBatchId: args.reply } : {}),
   text: args.text,
 })
 
@@ -53,7 +54,7 @@ function parseArgs(argv) {
   const o = {}
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i].replace(/^--/, '')
-    if (a === 'to' || a === 'text' || a === 'chat-id') o[a] = argv[++i]
+    if (a === 'to' || a === 'text' || a === 'chat-id' || a === 'reply') o[a] = argv[++i]
     else {
       console.error(`unknown arg: ${argv[i]}`)
       process.exit(1)

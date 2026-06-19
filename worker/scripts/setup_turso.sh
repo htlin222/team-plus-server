@@ -28,6 +28,8 @@ TURSO_AUTH_TOKEN="$TURSO_AUTH_TOKEN"
 COOKIE_UPLOAD_SECRET="$COOKIE_UPLOAD_SECRET"
 # TeamPlus instance base URL (origin, no trailing slash). REQUIRED — edit this.
 TEAMPLUS_BASE="${TEAMPLUS_BASE:-https://team.your-org.example}"
+# Read-only API key for GET /v1/logs (share to grant log access).
+TEAMPLUS_DB_KEY="$(openssl rand -hex 32)"
 EOF
 
 cat > "$WORKER_DIR/../.cf-worker.env" <<EOF

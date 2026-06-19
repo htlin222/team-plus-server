@@ -19,3 +19,4 @@ printf '%s' "$TURSO_URL" | wrangler secret put TURSO_URL
 printf '%s' "$TURSO_AUTH_TOKEN" | wrangler secret put TURSO_AUTH_TOKEN
 printf '%s' "$COOKIE_UPLOAD_SECRET" | wrangler secret put COOKIE_UPLOAD_SECRET
 printf '%s' "$TEAMPLUS_BASE" | wrangler secret put TEAMPLUS_BASE
+printf '%s' "$TEAMPLUS_DB_KEY" | wrangler secret put TEAMPLUS_DB_KEY

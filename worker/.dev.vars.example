@@ -17,3 +17,8 @@ COOKIE_UPLOAD_SECRET="generate-with-openssl-rand-hex-32"
 # derives the WebSocket, getToken, REST and cookie-domain values from this, so
 # the code carries no hardcoded organisation URL.
 TEAMPLUS_BASE="https://team.your-org.example"
+
+# Read-only API key for the log endpoint (GET /v1/logs). Anyone holding this key
+# can read the message log; keep it separate from COOKIE_UPLOAD_SECRET so you can
+# share read access without granting admin. Generate with: openssl rand -hex 32
+TEAMPLUS_DB_KEY="generate-with-openssl-rand-hex-32"

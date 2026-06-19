@@ -45,6 +45,26 @@ export async function verifyViewerToken(
   return timingSafeEqualHex(signature, expected)
 }
 
+/** Mint a viewer token (hex HMAC over `${key}\n${exp}`). */
+export async function signViewerToken(secret: string, key: string, exp: string): Promise<string> {
+  return hmacSha256Hex(secret, `${key}\n${exp}`)
+}
+
+/** Constant-time compare a presented API key against the configured one. */
+export function verifyApiKey(expected: string, presented: string): boolean {
+  if (!expected || !presented) return false
+  const enc = new TextEncoder()
+  const a = enc.encode(expected)
+  const b = enc.encode(presented)
+  // Length is compared in constant time via a fixed-size accumulator.
+  let diff = a.length ^ b.length
+  const n = Math.max(a.length, b.length)
+  for (let i = 0; i < n; i += 1) {
+    diff |= (a[i] ?? 0) ^ (b[i] ?? 0)
+  }
+  return diff === 0
+}
+
 async function hmacSha256Hex(secret: string, message: string): Promise<string> {
   const enc = new TextEncoder()
   const key = await crypto.subtle.importKey(

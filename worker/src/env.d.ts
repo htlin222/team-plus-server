@@ -13,4 +13,6 @@ interface Env {
   TURSO_URL: string
   TURSO_AUTH_TOKEN: string
   COOKIE_UPLOAD_SECRET: string
+  // Read-only API key for GET /v1/logs (share to grant log access).
+  TEAMPLUS_DB_KEY: string
 }

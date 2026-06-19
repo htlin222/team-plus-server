@@ -40,6 +40,49 @@ text row is still saved) and can be repaired later:
 ./scripts/cf_worker_request.mjs POST /v1/sessions/default/backfill-attachments '{"limit":50}'
 ```
 
+## Read API (`GET /v1/logs`)
+
+A read-only log endpoint gated by `TEAMPLUS_DB_KEY` (a secret separate from the
+admin `COOKIE_UPLOAD_SECRET`, so you can share read access without granting
+control). Returns recent messages as JSON, newest first, with a signed viewer
+link for any attachment.
+
+```sh
+# key via header (preferred) or ?key=
+curl -H "X-API-Key: $TEAMPLUS_DB_KEY" "https://<worker>/v1/logs"           # default: last 24h
+curl -H "X-API-Key: $TEAMPLUS_DB_KEY" "https://<worker>/v1/logs?hours=6"
+curl -H "X-API-Key: $TEAMPLUS_DB_KEY" "https://<worker>/v1/logs?days=7"    # max window
+curl "https://<worker>/v1/logs?key=$TEAMPLUS_DB_KEY&days=3"
+```
+
+- Window: `?hours=N` or `?days=N`. Default **24h**, hard-capped at **7 days**.
+- `?limit=N` caps the row count (default/max 2000).
+- Missing/invalid key → `401`.
+
+```jsonc
+{
+  "since": "2026-06-18T...Z",
+  "window_hours": 24,
+  "count": 41,
+  "messages": [
+    {
+      "ts": "2026-06-19T...Z",
+      "direction": "in",
+      "channel_type": 0,
+      "chat_id": "40_1049",
+      "chat_name": "...",
+      "sender_id": 40,
+      "sender_name": "...",
+      "msg_type": 1,
+      "content": "...",
+      "attachment": { "name": "IMG_2087.jpg", "url": "https://<worker>/a?key=...&exp=...&sig=..." }
+    }
+  ]
+}
+```
+
+The `attachment.url` is a signed viewer link valid for one week (see below).
+
 ### Viewing an attachment
 
 `GET /a?key=...&exp=...&sig=...` streams an R2 object in the browser. The link

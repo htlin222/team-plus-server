@@ -1,10 +1,15 @@
 export { TeamplusSession } from './session'
 
-import { verifySignedRequest, verifyViewerToken } from './auth'
+import { signViewerToken, verifyApiKey, verifySignedRequest, verifyViewerToken } from './auth'
+import { selectRecentMessages } from './turso'
 import type { CookieUpload, TeamplusSession } from './session'
 
 // Hard cap on attachment viewer links: one week.
 const VIEWER_MAX_TTL_S = 7 * 24 * 3600
+// Read-API time window: default 24h, hard cap one week.
+const LOGS_DEFAULT_HOURS = 24
+const LOGS_MAX_HOURS = 7 * 24
+const LOGS_MAX_ROWS = 2000
 
 export default {
   async fetch(request, env, ctx): Promise<Response> {
@@ -31,6 +36,11 @@ async function handleRequest(
   // Public, token-gated attachment viewer (links expire within a week).
   if (request.method === 'GET' && url.pathname === '/a') {
     return serveAttachment(url, env)
+  }
+
+  // Read-only log API, gated by TEAMPLUS_DB_KEY.
+  if (request.method === 'GET' && url.pathname === '/v1/logs') {
+    return serveLogs(request, url, env)
   }
 
   const route = matchSessionRoute(url.pathname)
@@ -87,6 +97,71 @@ function matchSessionRoute(pathname: string): { accountId: string; action: strin
     accountId: decodeURIComponent(match[1]!),
     action: match[2]!,
   }
+}
+
+async function serveLogs(request: Request, url: URL, env: Env): Promise<Response> {
+  const presented =
+    url.searchParams.get('key') ??
+    request.headers.get('x-api-key') ??
+    bearerToken(request) ??
+    ''
+  if (!verifyApiKey(env.TEAMPLUS_DB_KEY, presented)) {
+    return json({ error: 'unauthorized' }, 401)
+  }
+
+  // Window: ?days=N or ?hours=N; default 24h, hard-capped at one week.
+  let hours = LOGS_DEFAULT_HOURS
+  const daysParam = url.searchParams.get('days')
+  const hoursParam = url.searchParams.get('hours')
+  if (daysParam !== null) hours = Number(daysParam) * 24
+  else if (hoursParam !== null) hours = Number(hoursParam)
+  if (!Number.isFinite(hours) || hours <= 0) hours = LOGS_DEFAULT_HOURS
+  hours = Math.min(hours, LOGS_MAX_HOURS)
+
+  let limit = Number(url.searchParams.get('limit') ?? LOGS_MAX_ROWS)
+  if (!Number.isFinite(limit) || limit <= 0) limit = LOGS_MAX_ROWS
+  limit = Math.min(limit, LOGS_MAX_ROWS)
+
+  const sinceMs = Date.now() - hours * 3_600_000
+  const rows = await selectRecentMessages(env, sinceMs, limit)
+
+  const exp = String(Math.floor(Date.now() / 1000) + VIEWER_MAX_TTL_S)
+  const messages = []
+  for (const r of rows) {
+    let attachment = null
+    if (r.attachmentKey) {
+      const sig = await signViewerToken(env.COOKIE_UPLOAD_SECRET, r.attachmentKey, exp)
+      attachment = {
+        name: r.attachmentName,
+        url: `${url.origin}/a?key=${encodeURIComponent(r.attachmentKey)}&exp=${exp}&sig=${sig}`,
+      }
+    }
+    messages.push({
+      ts: new Date(r.teamplusTsMs ?? r.receivedAtMs).toISOString(),
+      direction: r.direction,
+      channel_type: r.channelType,
+      chat_id: r.chatId,
+      chat_name: r.chatName,
+      sender_id: r.senderId,
+      sender_name: r.senderName,
+      msg_type: r.msgType,
+      content: r.content,
+      attachment,
+    })
+  }
+
+  return json({
+    since: new Date(sinceMs).toISOString(),
+    window_hours: hours,
+    count: messages.length,
+    messages,
+  })
+}
+
+function bearerToken(request: Request): string | null {
+  const h = request.headers.get('authorization') ?? ''
+  const m = /^Bearer\s+(.+)$/i.exec(h)
+  return m ? m[1]! : null
 }
 
 async function serveAttachment(url: URL, env: Env): Promise<Response> {

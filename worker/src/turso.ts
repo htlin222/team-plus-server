@@ -89,6 +89,63 @@ export async function selectPendingAttachments(
   }))
 }
 
+export type LogRow = {
+  teamplusTsMs: number | null
+  receivedAtMs: number
+  direction: string
+  channelType: number | null
+  chatId: string
+  chatName: string | null
+  senderId: number | null
+  senderName: string | null
+  msgType: number | null
+  content: string | null
+  attachmentKey: string | null
+  attachmentName: string | null
+}
+
+/** Messages received at/after `sinceMs`, newest first, for the read API. */
+export async function selectRecentMessages(
+  env: Env,
+  sinceMs: number,
+  limit: number,
+): Promise<LogRow[]> {
+  const client = createClient({
+    url: required(env.TURSO_URL, 'TURSO_URL'),
+    authToken: required(env.TURSO_AUTH_TOKEN, 'TURSO_AUTH_TOKEN'),
+  })
+  const res = await client.execute({
+    sql: `
+      select teamplus_ts_ms, received_at_ms, direction, channel_type, chat_id, chat_name,
+             sender_id, sender_name, msg_type, content, attachment_key,
+             case when json_valid(content2) then json_extract(content2, '$.ShowName') end
+               as attachment_name
+      from messages
+      where received_at_ms >= ?
+      order by received_at_ms desc
+      limit ?
+    `,
+    args: [sinceMs, limit],
+  })
+  // libSQL may return integer columns as BigInt; coerce so the result is
+  // JSON-serialisable (Response.json throws on BigInt).
+  const num = (v: unknown): number | null => (v === null || v === undefined ? null : Number(v))
+  return res.rows.map(r => ({
+    teamplusTsMs: num(r.teamplus_ts_ms),
+    receivedAtMs: Number(r.received_at_ms),
+    direction: String(r.direction),
+    channelType: num(r.channel_type),
+    chatId: String(r.chat_id),
+    chatName: (r.chat_name as string | null) ?? null,
+    senderId: num(r.sender_id),
+    senderName: (r.sender_name as string | null) ?? null,
+    msgType: num(r.msg_type),
+    content: (r.content as string | null) ?? null,
+    attachmentKey: (r.attachment_key as string | null) ?? null,
+    attachmentName: (r.attachment_name as string | null) ?? null,
+  }))
+}
+
 export async function insertSessionEvent(
   env: Env,
   accountId: string,

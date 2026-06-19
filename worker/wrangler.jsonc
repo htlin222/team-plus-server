@@ -16,7 +16,8 @@
       "TURSO_URL",
       "TURSO_AUTH_TOKEN",
       "COOKIE_UPLOAD_SECRET",
-      "TEAMPLUS_BASE"
+      "TEAMPLUS_BASE",
+      "TEAMPLUS_DB_KEY"
     ]
   },
   "durable_objects": {

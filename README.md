@@ -34,6 +34,7 @@ specific organisation is baked into the source.
 - 🏷️ **Name resolution** — numeric sender/chat IDs are resolved to real names via the TeamPlus REST API (cached per session).
 - 🖼️ **Attachment archive** — images and files are downloaded and stored in R2; rich flex cards are kept as JSON.
 - 🔗 **Time-limited viewer links** — signed, browser-openable URLs for any attachment that the worker hard-caps to expire within a week.
+- 🔑 **Read API** — `GET /v1/logs` returns recent messages as JSON (default 24h, up to 7 days), gated by a shareable read-only key.
 - 📲 **Telegram bridge** — incoming messages mirror to a Telegram bot DM; reply, or have an assistant draft replies, from your phone.
 - ♻️ **Self-healing** — the Durable Object reconnects on drops, with a cron keepalive as backstop.
 - ☁️ **No laptop required** — cookie refresh runs as a GitHub Actions cron.
@@ -139,7 +140,7 @@ All secrets live in gitignored files; templates are committed:
 | `.telegram.json` | Telegram bot token + chat_id | `scripts/setup_telegram.sh` |
 | `.config.json` | your TeamPlus `my_id` + mute lists | auto-filled |
 | `cookies.json` | captured session cookies | `scripts/refresh.sh` |
-| `worker/.dev.vars` | Turso creds, upload secret, `TEAMPLUS_BASE` | `worker/.dev.vars.example` |
+| `worker/.dev.vars` | Turso creds, upload secret, `TEAMPLUS_BASE`, `TEAMPLUS_DB_KEY` | `worker/.dev.vars.example` |
 | `.cf-worker.env` | deployed worker URL + upload secret | `worker/scripts/setup_turso.sh` |
 
 Nothing in version control contains a real credential or organisation URL.
